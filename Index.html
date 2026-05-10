@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TrackPro Elite</title>
+    <style>
+        :root {
+            --bg-color: #050914;
+            --panel-bg: rgba(16, 22, 40, 0.85);
+            --primary: #00e5ff;
+            --primary-glow: rgba(0, 229, 255, 0.5);
+            --success: #00ff88;
+            --danger: #ff2a55;
+            --warning: #ffb800;
+            --text-main: #ffffff;
+            --text-muted: #6b7a99;
+            --font-main: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box; margin: 0; padding: 0;
+            font-family: var(--font-main);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; padding: 15px;
+            background-image: radial-gradient(circle at 50% 0%, #0d152b 0%, #050914 70%);
+        }
+
+        /* --- Header & Distance --- */
+        .header-title {
+            font-size: 22px; font-weight: 900; letter-spacing: 2px;
+            color: var(--primary); margin-bottom: 15px;
+            text-shadow: 0 0 12px var(--primary-glow); text-transform: uppercase;
+        }
+
+        .distance-selector {
+            display: flex; gap: 8px; width: 100%; max-width: 400px;
+            margin-bottom: 15px; background: rgba(0,0,0,0.4); padding: 5px; border-radius: 12px;
+        }
+
+        .dist-btn {
+            flex: 1; background: transparent; border: none; color: var(--text-muted);
+            padding: 12px 0; border-radius: 8px; font-size: 16px; font-weight: 800;
+            cursor: pointer; transition: all 0.2s;
+        }
+
+        .dist-btn.active {
+            background: var(--primary); color: #000; box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        /* --- Toggles & Settings --- */
+        .settings-panel {
+            width: 100%; max-width: 400px; display: flex; justify-content: space-between;
+            background: var(--panel-bg); border-radius: 12px; padding: 12px 15px;
+            margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .toggle-wrapper { display: flex; align-items: center; gap: 10px; }
+        .toggle-label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+
+        /* Custom Checkbox Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: var(--text-muted); transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: #000; }
+
+        /* --- Main Dashboard --- */
+        .dashboard {
+            width: 100%; max-width: 400px; background: var(--panel-bg);
+            border-radius: 20px; padding: 25px 20px; text-align: center;
+            border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px; position: relative;
+        }
+
+        .gps-status {
+            font-size: 12px; font-weight: bold; color: var(--warning);
+            margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .gps-status.locked { color: var(--success); }
+
+        .timer-container { position: relative; margin-bottom: 20px; height: 75px; display: flex; justify-content: center; align-items: center;}
+        
+        .timer {
+            font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums;
+            text-shadow: 0 0 20px rgba(255,255,255,0.1); position: absolute;
+        }
+        .timer-ms { font-size: 28px; color: var(--text-muted); }
+
+        .countdown-overlay {
+            font-size: 80px; font-weight: 900; color: var(--danger);
+            position: absolute; display: none; text-shadow: 0 0 30px rgba(255, 42, 85, 0.6);
+        }
+
+        /* Progress & Distance */
+        .progress-wrapper {
+            width: 100%; height: 6px; background: rgba(0,0,0,0.5); border-radius: 3px;
+            margin-bottom: 10px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; width: 0%; background: var(--primary);
+            box-shadow: 0 0 10px var(--primary); transition: width 0.3s linear;
+        }
+        .distance-text { font-size: 18px; font-weight: 800; color: var(--text-main); }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .stat-box { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 2px; }
+        .stat-value { font-size: 20px; font-weight: 700; color: var(--primary); }
+
+        /* --- Splits Table --- */
+        .splits-container {
+            width: 100%; max-width: 400px; background: var(--panel-bg);
+            border-radius: 16px; padding: 15px; margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.05); display: none;
+        }
+        .splits-title { font-size: 14px; color: var(--text-muted); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;}
+        .split-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 15px; font-weight: 600;}
+        .split-row:last-child { border-bottom: none; }
+
+        /* --- Controls --- */
+        .controls { display: flex; gap: 10px; width: 100%; max-width: 400px; margin-bottom: 20px;}
+        .btn {
+            flex: 1; padding: 16px; border-radius: 14px; border: none;
+            font-size: 18px; font-weight: 900; text-transform: uppercase; cursor: pointer;
+        }
+        .btn-start { background: var(--success); color: #000; box-shadow: 0 4px 20px rgba(0, 255, 136, 0.2); }
+        .btn-stop { background: var(--danger); color: #fff; display: none; box-shadow: 0 4px 20px rgba(255, 42, 85, 0.3); }
+        .btn-reset { background: rgba(255,255,255,0.1); color: #fff; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-title">TrackPro Elite</div>
+
+    <div class="distance-selector" id="distSelector">
+        <button class="dist-btn active" data-dist="100">100m</button>
+        <button class="dist-btn" data-dist="200">200m</button>
+        <button class="dist-btn" data-dist="300">300m</button>
+        <button class="dist-btn" data-dist="400">400m</button>
+    </div>
+
+    <div class="settings-panel">
+        <div class="toggle-wrapper">
+            <span class="toggle-label">3-2-1 Audio Start</span>
+            <label class="switch"><input type="checkbox" id="toggleCountdown" checked><span class="slider"></span></label>
+        </div>
+        <button id="connectGpsBtn" style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer;">Connect GPS</button>
+    </div>
+
+    <div class="dashboard">
+        <div class="gps-status" id="gpsStatus">GPS Disconnected</div>
+        
+        <div class="timer-container">
+            <div class="timer" id="timerDisplay">00:00<span class="timer-ms">.00</span></div>
+            <div class="countdown-overlay" id="countdownDisplay">3</div>
+        </div>
+        
+        <div class="progress-wrapper"><div class="progress-fill" id="progressBar"></div></div>
+        <div class="distance-text" id="distanceDisplay">0.0m / 100m</div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <span class="stat-label">Avg Pace (/km)</span>
+                <span class="stat-value" id="avgPace">0:00</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Top Speed (km/h)</span>
+                <span class="stat-value" id="topSpeed">0.0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="splits-container" id="splitsContainer">
+        <div class="splits-title">100m Splits</div>
+        <div id="splitsList"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-reset" id="resetBtn">Reset</button>
+        <button class="btn btn-start" id="startBtn" disabled>Start</button>
+        <button class="btn btn-stop" id="stopBtn">Stop</button>
+    </div>
+
+    <script>
+        // --- Core Variables ---
+        let targetDistance = 100;
+        let currentDistance = 0;
+        let isRunning = false;
+        let gpsLocked = false;
+        
+        let startTime = 0;
+        let timerInterval = null;
+        let watchId = null;
+        let lastPosition = null;
+        let maxSpeed = 0;
+        let nextSplit = 100;
+
+        // Audio Context
+        let audioCtx;
+
+        // --- DOM Elements ---
+        const distButtons = document.querySelectorAll('.dist-btn');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const countdownDisplay = document.getElementById('countdownDisplay');
+        const distanceDisplay = document.getElementById('distanceDisplay');
+        const progressBar = document.getElementById('progressBar');
+        const avgPaceEl = document.getElementById('avgPace');
+        const topSpeedEl = document.getElementById('topSpeed');
+        const gpsStatus = document.getElementById('gpsStatus');
+        const connectGpsBtn = document.getElementById('connectGpsBtn');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const toggleCountdown = document.getElementById('toggleCountdown');
+        const splitsContainer = document.getElementById('splitsContainer');
+        const splitsList = document.getElementById('splitsList');
+
+        // --- Distance Selection ---
+        distButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isRunning) return; 
+                distButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                targetDistance = parseInt(btn.getAttribute('data-dist'));
+                splitsContainer.style.display = targetDistance > 100 ? 'block' : 'none';
+                updateUI();
+            });
+        });
+
+        // --- Audio Synthesizer (The "Pang" and Beeps) ---
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'beep') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+            } else if (type === 'pang') {
+                // Gunshot / Pang sound
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.4);
+                gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                // Add a little noise layer for "pop"
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass'; filter.frequency.value = 1000;
+                gainNode.connect(filter); filter.connect(audioCtx.destination);
+                
+                osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+            }
+        }
+
+        // --- GPS Filtering & Math ---
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; 
+            const p = Math.PI / 180;
+            const a = 0.5 - Math.cos((lat2 - lat1) * p)/2 + 
+                      Math.cos(lat1 * p) * Math.cos(lat2 * p) * 
+                      (1 - Math.cos((lon2 - lon1) * p))/2;
+            return R * 2 * Math.asin(Math.sqrt(a));
+        }
+
+        connectGpsBtn.addEventListener('click', () => {
+            if (!navigator.geolocation) return alert("GPS not supported.");
+            gpsStatus.innerText = "Connecting...";
+            gpsStatus.style.color = "var(--warning)";
+            
+            navigator.geolocation.getCurrentPosition((pos) => {
+                if(pos.coords.accuracy <= 15) {
+                    gpsLocked = true;
+                    gpsStatus.innerText = `GPS Locked (${Math.round(pos.coords.accuracy)}m)`;
+                    gpsStatus.className = "gps-status locked";
+                    startBtn.disabled = false;
+                } else {
+                    gpsStatus.innerText = `Weak Signal (${Math.round(pos.coords.accuracy)}m) - Move Outside`;
+                }
+            }, (err) => {
+                gpsStatus.innerText = "GPS Error / Denied";
+            }, { enableHighAccuracy: true, timeout: 10000 });
+        });
+
+        // --- Core Tracking Logic ---
+        function handlePositionUpdate(position) {
+            const { latitude, longitude, accuracy } = position.coords;
+
+            // Reject inaccurate points (>12m)
+            if (accuracy > 12) return;
+
+            if (lastPosition) {
+                const distMoved = calculateDistance(lastPosition.latitude, lastPosition.longitude, latitude, longitude);
+                const timeDiffSec = (position.timestamp - lastPosition.timestamp) / 1000;
+                
+                // Calculate Speed (m/s)
+                let speedMs = 0;
+                if (timeDiffSec > 0) speedMs = distMoved / timeDiffSec;
+                let currentSpeedKmh = speedMs * 3.6;
+
+                // Outlier Filter: Reject humanly impossible speeds (> 45km/h) to prevent GPS teleportation bugs
+                if (currentSpeedKmh > 45) return; 
+
+                // Minimum movement threshold to ignore standing-still jitter
+                if (distMoved > 0.5) {
+                    currentDistance += distMoved;
+                    if (currentSpeedKmh > maxSpeed) maxSpeed = currentSpeedKmh;
+
+                    // Record Splits
+                    if (currentDistance >= nextSplit && nextSplit < targetDistance) {
+                        recordSplit(nextSplit, Date.now() - startTime);
+                        nextSplit += 100;
+                    }
+
+                    updateUI();
+
+                    if (currentDistance >= targetDistance) finishSprint();
+                }
+            }
+            lastPosition = { latitude, longitude, timestamp: position.timestamp };
+        }
+
+        function recordSplit(distance, timeMs) {
+            const mins = Math.floor(timeMs / 60000);
+            const secs = ((timeMs % 60000) / 1000).toFixed(2);
+            const div = document.createElement('div');
+            div.className = 'split-row';
+            div.innerHTML = `<span>${distance}m</span><span>${mins > 0 ? mins+':' : ''}${secs.padStart(5, '0')}</span>`;
+            splitsList.appendChild(div);
+        }
+
+        // --- Sequence & Timers ---
+        startBtn.addEventListener('click', () => {
+            if (!gpsLocked) return;
+            initAudio(); // Required by browsers to start on click
+            
+            if (toggleCountdown.checked) {
+                startBtn.disabled = true;
+                timerDisplay.style.opacity = '0.1';
+                countdownDisplay.style.display = 'block';
+                
+                let count = 3;
+                countdownDisplay.innerText = count;
+                playSound('beep');
+
+                const countInterval = setInterval(() => {
+                    count--;
+                    if (count > 0) {
+                        countdownDisplay.innerText = count;
+                        playSound('beep');
+                    } else {
+                        clearInterval(countInterval);
+                        countdownDisplay.innerText = "GO!";
+                        countdownDisplay.style.color = "var(--success)";
+                        playSound('pang');
+                        setTimeout(() => {
+                            countdownDisplay.style.display = 'none';
+                            timerDisplay.style.opacity = '1';
+                            countdownDisplay.style.color = "var(--danger)";
+                        }, 800);
+                        beginTracking();
+                    }
+                }, 1000);
+            } else {
+                playSound('pang');
+                beginTracking();
+            }
+        });
+
+        function beginTracking() {
+            isRunning = true; currentDistance = 0; maxSpeed = 0; nextSplit = 100;
+            lastPosition = null; splitsList.innerHTML = '';
+            
+            document.getElementById('distSelector').style.pointerEvents = 'none';
+            document.getElementById('distSelector').style.opacity = '0.5';
+            startBtn.style.display = 'none'; stopBtn.style.display = 'block';
+            resetBtn.disabled = true;
+
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimerUI, 10);
+
+            watchId = navigator.geolocation.watchPosition(
+                handlePositionUpdate, 
+                console.warn, 
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 3000 }
+            );
+        }
+
+        function finishSprint() {
+            stopSprint();
+            currentDistance = targetDistance;
+            updateUI();
+            recordSplit(targetDistance, Date.now() - startTime); // Final time split
+            distanceDisplay.innerText = "FINISHED!";
+            distanceDisplay.style.color = "var(--success)";
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+        }
+
+        function stopSprint() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            
+            startBtn.style.display = 'block'; startBtn.disabled = false;
+            stopBtn.style.display = 'none'; resetBtn.disabled = false;
+            document.getElementById('distSelector').style.pointerEvents = 'auto';
+            document.getElementById('distSelector').style.opacity = '1';
+        }
+
+        resetBtn.addEventListener('click', () => {
+            if (isRunning) return;
+            currentDistance = 0; maxSpeed = 0; nextSplit = 100;
+            timerDisplay.innerHTML = `00:00<span class="timer-ms">.00</span>`;
+            distanceDisplay.style.color = "var(--text-main)";
+            splitsList.innerHTML = '';
+            updateUI();
+        });
+
+        function updateUI() {
+            distanceDisplay.innerText = `${currentDistance.toFixed(1)}m / ${targetDistance}m`;
+            let pct = Math.min((currentDistance / targetDistance) * 100, 100);
+            progressBar.style.width = `${pct}%`;
+            topSpeedEl.innerText = maxSpeed.toFixed(1);
+
+            // Calculate Pace (min/km)
+            if (currentDistance > 10) {
+                const elapsedMs = Date.now() - startTime;
+                const km = currentDistance / 1000;
+                const minutes = (elapsedMs / 60000) / km;
+                const paceMin = Math.floor(minutes);
+                const paceSec = Math.floor((minutes - paceMin) * 60).toString().padStart(2, '0');
+                avgPaceEl.innerText = `${paceMin}:${paceSec}`;
+            } else {
+                avgPaceEl.innerText = "0:00";
+            }
+        }
+
+        function updateTimerUI() {
+            const elapsed = Date.now() - startTime;
+            const m = Math.floor(elapsed / 60000).toString().padStart(2, '0');
+            const s = Math.floor((elapsed % 60000) / 1000).toString().padStart(2, '0');
+            const ms = Math.floor((elapsed % 1000) / 10).toString().padStart(2, '0');
+            timerDisplay.innerHTML = `${m}:${s}<span class="timer-ms">.${ms}</span>`;
+        }
+    </script>
+</body>
+</html>
